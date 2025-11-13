@@ -1,33 +1,3 @@
-# Appointment Management Service
-
-## Overview
-
-This repository contains a backend service for managing appointments, built as part of a software developer assignment. The service handles high-load requests to create or update appointments while ensuring no overlaps in time ranges, validating data, maintaining historical records, and supporting concurrent operations safely.
-
-The core functionality simulates a simplified version of appointment scheduling (inspired by systems like Sesami), focusing on RESTful APIs, data integrity, and scalability. It's designed to be production-ready, with modular architecture, tests, and deployment options.
-
-Key features:
-- **POST /api/appointments**: Create or update an appointment (upsert by ID), check for overlaps, validate input, and store history.
-- **GET /api/appointments**: Retrieve all current appointments.
-- Concurrency handling: Tested with provided script for parallel requests.
-- History tracking: Retains full audit trail of changes.
-- Optional: Organization-level scoping (for isolated overlap checks).
-
-This project demonstrates proficiency in software design, unit/E2E testing, and web technologies (HTTP/REST). It's implemented in Node.js with NestJS and TypeScript for structure and type safety, using PostgreSQL for persistence.
-
-## Tech Stack
-
-| Category | Technology |
-|----------|------------|
-| Language | TypeScript |
-| Framework | NestJS |
-| Database | PostgreSQL (with TypeORM for ORM and migrations) |
-| Testing | Jest (unit + E2E with Supertest) |
-| Validation | class-validator |
-| Concurrency | Database transactions with row locking |
-| Containerization | Docker + docker-compose |
-| Other | Winston for logging, ConfigModule for env management |
-
 ## Architectural Approaches for Consistency
 
 This document outlines two potential architectural approaches for handling appointment creation/updates under high concurrency, focusing on consistency guarantees. The assignment emphasizes safe concurrent request handling, overlap detection, and immediate error feedback, which influences the choice.
