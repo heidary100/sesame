@@ -1,8 +1,9 @@
-FROM node:18-alpine AS dev
+FROM node:20-alpine AS dev_builder
 
 WORKDIR /usr/src/app
 
 COPY package*.json ./
+
 RUN npm install
 
 COPY . .

@@ -38,7 +38,7 @@ docker compose up --build
 | Service                | URL                                                              |
 | ---------------------- | ---------------------------------------------------------------- |
 | API                    | [http://localhost:3000](http://localhost:3000)                   |
-| Swagger Docs           | [http://localhost:3000/api/docs](http://localhost:3000/api/docs) |
+| Swagger Docs           | [http://localhost:3000/api](http://localhost:3000/api) |
 | Postgres (for DBeaver) | Host: `localhost` — Port: `55432`                                |
 
 ### 4. Stop all services
