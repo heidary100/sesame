@@ -1,5 +1,7 @@
 import { DataSourceOptions } from 'typeorm';
 import * as dotenv from 'dotenv';
+import { Appointment } from 'src/appointments/entities/appointment.entity';
+import { AppointmentHistory } from 'src/appointments/entities/appointment-history.entity';
 dotenv.config();
 
 const config: DataSourceOptions = {
@@ -9,8 +11,8 @@ const config: DataSourceOptions = {
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASS || 'postgres',
   database: process.env.DB_NAME || 'appointments',
-  entities: [],
-  synchronize: true, // dev only; in prod use migrations
+  entities: [Appointment, AppointmentHistory],
+  synchronize: false,
   logging: false,
 };
 
