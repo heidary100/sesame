@@ -1,3 +1,5 @@
+import { BadRequestException } from '@nestjs/common';
+
 export class AppointmentDomain {
   id: number;
   start: Date;
@@ -24,13 +26,16 @@ export class AppointmentDomain {
     this.validate();
   }
 
-  // Business rule: end > start
+  // Business rule: end > start, id > 0, updatedAt >= createdAt
   private validate(): void {
+    if (this.id <= 0) {
+      throw new BadRequestException('Appointment ID must be a positive integer');
+    }
     if (this.end <= this.start) {
-      throw new Error('End must be after start');
+      throw new BadRequestException('End time must be after start time');
     }
     if (this.updatedAt < this.createdAt) {
-      throw new Error('updatedAt cannot be earlier than createdAt');
+      throw new BadRequestException('updatedAt cannot be earlier than createdAt');
     }
   }
 
@@ -42,7 +47,7 @@ export class AppointmentDomain {
   // Method to update (with rules)
   update(newData: Partial<AppointmentDomain>): void {
     if (newData.updatedAt && newData.updatedAt < this.updatedAt) {
-      throw new Error('New updatedAt cannot be earlier than current');
+      throw new BadRequestException('New updatedAt cannot be earlier than current');
     }
     Object.assign(this, newData);
     this.version += 1;

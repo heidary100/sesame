@@ -3,7 +3,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, Not } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Appointment } from './entities/appointment.entity';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { AppointmentDomain } from './domain/appointment.domain';
@@ -20,11 +20,22 @@ export class AppointmentsService {
   async upsertAppointment(dto: CreateAppointmentDto): Promise<Appointment> {
     const incomingDomain = AppointmentMapper.toDomain(dto);
 
-    return this.dataSource.transaction(async (manager) => {
-      const existingEntity = await manager.findOne(Appointment, {
-        where: { id: incomingDomain.id },
+    // Use different isolation levels: REPEATABLE_READ for production, READ_COMMITTED for testing
+    // READ_COMMITTED is more compatible with pessimistic locking in test environments
+    const isolationLevel = process.env.NODE_ENV === 'test' ? 'READ COMMITTED' : 'REPEATABLE READ';
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction(isolationLevel);
+
+    try {
+      // Lock ALL appointments to prevent concurrent modifications during overlap check
+      const allAppointments = await queryRunner.manager.find(Appointment, {
         lock: { mode: 'pessimistic_write' },
       });
+
+      const existingEntity = allAppointments.find(
+        (a) => a.id === incomingDomain.id,
+      );
 
       let currentDomain: AppointmentDomain;
 
@@ -39,17 +50,19 @@ export class AppointmentsService {
 
         // Save old state to history
         const oldHistory = AppointmentMapper.toHistoryDomain(
-          AppointmentMapper.fromEntity(existingEntity)
+          AppointmentMapper.fromEntity(existingEntity),
         );
-        await manager.save(AppointmentMapper.toHistoryEntity(oldHistory));
+        await queryRunner.manager.save(
+          AppointmentMapper.toHistoryEntity(oldHistory),
+        );
       } else {
         currentDomain = incomingDomain;
       }
 
-      // Overlap check
-      const others = await manager.find(Appointment, {
-        where: { id: Not(currentDomain.id) },
-      });
+      // Overlap check - now under full lock protection
+      const others = allAppointments.filter(
+        (a) => a.id !== currentDomain.id,
+      );
 
       const hasOverlap = others.some((e) => {
         const otherDomain = AppointmentMapper.fromEntity(e);
@@ -57,15 +70,32 @@ export class AppointmentsService {
       });
 
       if (hasOverlap) {
-        throw new ConflictException('The requested time range is not available.');
+        throw new ConflictException(
+          'The requested time range is not available.',
+        );
       }
 
       const entityToSave = AppointmentMapper.toEntity(currentDomain);
-      return manager.save(entityToSave);
-    });
+      const savedEntity = await queryRunner.manager.save(entityToSave);
+
+      await queryRunner.commitTransaction();
+      return savedEntity;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
-  async findCurrentAppointments(): Promise<Appointment[]> {
-    return this.appointmentRepo.find({ order: { start: 'ASC' } });
+  async findCurrentAppointments(
+    limit: number = 100,
+    offset: number = 0,
+  ): Promise<Appointment[]> {
+    return this.appointmentRepo.find({
+      order: { start: 'ASC' },
+      take: limit,
+      skip: offset,
+    });
   }
 }

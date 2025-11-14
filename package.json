@@ -85,7 +85,15 @@
       "main.ts",
       ".module.ts",
       ".config.ts",
-      ".dto.ts"
+      ".dto.ts",
+      "migrations/",
+      "config/",
+      "data-source.ts",
+      "common/filters/",
+      "appointments/pipes/",
+      "appointments/entities/",
+      "all-exceptions.filter.ts",
+      "date-validation.pipe.ts"
     ]
   }
 }

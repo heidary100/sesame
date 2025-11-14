@@ -10,6 +10,12 @@ import { IsDateAfter } from '../../common/validators/is-date-after.decorator';
 
 export class CreateAppointmentDto {
   @ApiProperty({ example: 1 })
+  @Transform(({ value }: TransformFnParams) => {
+    if (typeof value === 'string') {
+      return parseInt(value, 10);
+    }
+    return value;
+  })
   @IsDefined()
   @IsInt()
   @IsPositive({ message: 'id must be a positive number.' })
