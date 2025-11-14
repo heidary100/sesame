@@ -9,8 +9,8 @@ describe('AppointmentsController', () => {
   let service: AppointmentsService;
 
   const mockService = {
-    createOrUpdate: jest.fn(),
-    findAll: jest.fn(),
+    upsertAppointment: jest.fn(),
+    findCurrentAppointments: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -42,21 +42,21 @@ describe('AppointmentsController', () => {
     };
 
     it('should call service.createOrUpdate with the DTO', async () => {
-      mockService.createOrUpdate.mockResolvedValue({ message: 'created' });
+      mockService.upsertAppointment.mockResolvedValue({ message: 'created' });
 
       const result = await controller.create(dto);
       expect(result).toEqual({ message: 'created' });
-      expect(service.createOrUpdate).toHaveBeenCalledWith(dto);
+      expect(service.upsertAppointment).toHaveBeenCalledWith(dto);
     });
 
     it('should bubble validation errors (400)', async () => {
-      mockService.createOrUpdate.mockRejectedValue(new BadRequestException());
+      mockService.upsertAppointment.mockRejectedValue(new BadRequestException());
 
       await expect(controller.create(dto)).rejects.toThrow(BadRequestException);
     });
 
     it('should bubble conflict errors (409)', async () => {
-      mockService.createOrUpdate.mockRejectedValue(new ConflictException());
+      mockService.upsertAppointment.mockRejectedValue(new ConflictException());
 
       await expect(controller.create(dto)).rejects.toThrow(ConflictException);
     });
@@ -65,10 +65,10 @@ describe('AppointmentsController', () => {
   describe('findAll', () => {
     it('should return all appointments', async () => {
       const mockData = [{ id: 1 }];
-      mockService.findAll.mockResolvedValue(mockData);
+      mockService.findCurrentAppointments.mockResolvedValue(mockData);
 
       expect(await controller.findAll()).toEqual(mockData);
-      expect(service.findAll).toHaveBeenCalledTimes(1);
+      expect(service.findCurrentAppointments).toHaveBeenCalledTimes(1);
     });
   });
 });

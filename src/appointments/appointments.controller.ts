@@ -5,17 +5,15 @@ import {
   Post,
   HttpCode,
   HttpStatus,
-  UsePipes,
 } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
-import { DateValidationPipe } from './pipes/date-validation.pipe';
 
 @ApiTags('Appointments')
 @Controller('appointments')
 export class AppointmentsController {
-  constructor(private readonly appointmentsService: AppointmentsService) {}
+  constructor(private readonly appointmentsService: AppointmentsService) { }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -30,10 +28,14 @@ export class AppointmentsController {
     status: 409,
     description: 'Appointment time range overlaps with another appointment.',
   })
-  @UsePipes(DateValidationPipe)
   async create(@Body() dto: CreateAppointmentDto) {
-    const result = await this.appointmentsService.createOrUpdate(dto);
-    return result;
+    try {
+      const result = await this.appointmentsService.upsertAppointment(dto);
+      return result;
+    } catch (error) {
+      console.error('Error in create appointment:', error);
+      throw error;
+    }
   }
 
   @Get()
@@ -43,6 +45,6 @@ export class AppointmentsController {
     description: 'Fetched all appointments successfully.',
   })
   async findAll() {
-    return this.appointmentsService.findAll();
+    return this.appointmentsService.findCurrentAppointments();
   }
 }

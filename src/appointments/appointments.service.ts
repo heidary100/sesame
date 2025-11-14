@@ -1,31 +1,71 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource, Not } from 'typeorm';
+import { Appointment } from './entities/appointment.entity';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
+import { AppointmentDomain } from './domain/appointment.domain';
+import { AppointmentMapper } from './mappers/appointment.mapper';
 
 @Injectable()
 export class AppointmentsService {
-  constructor() {} // private readonly dataSource: DataSource, // private readonly historyRepo: Repository<AppointmentHistory>, // @InjectRepository(AppointmentHistory) // private readonly appointmentRepo: Repository<Appointment>, // @InjectRepository(Appointment) // inject repositories later
+  constructor(
+    @InjectRepository(Appointment)
+    private readonly appointmentRepo: Repository<Appointment>,
+    private readonly dataSource: DataSource,
+  ) { }
 
-  /**
-   * Create or update an appointment.
-   *
-   * TDD: Write tests before you implement this.
-   */
-  async createOrUpdate(dto: CreateAppointmentDto): Promise<any> {
-    // TODO: transactional implementation using TypeORM
-    // TODO: throw BadRequestException for invalid dates
-    // TODO: throw ConflictException for overlapping appointments
-    // TODO: insert existing row into history table on update
-    // TODO: return meaningful result object
-    return {};
+  async upsertAppointment(dto: CreateAppointmentDto): Promise<Appointment> {
+    const incomingDomain = AppointmentMapper.toDomain(dto);
+
+    return this.dataSource.transaction(async (manager) => {
+      const existingEntity = await manager.findOne(Appointment, {
+        where: { id: incomingDomain.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      let currentDomain: AppointmentDomain;
+
+      if (existingEntity) {
+        currentDomain = AppointmentMapper.fromEntity(existingEntity);
+        currentDomain.update({
+          start: incomingDomain.start,
+          end: incomingDomain.end,
+          createdAt: incomingDomain.createdAt,
+          updatedAt: incomingDomain.updatedAt,
+        });
+
+        // Save old state to history
+        const oldHistory = AppointmentMapper.toHistoryDomain(
+          AppointmentMapper.fromEntity(existingEntity)
+        );
+        await manager.save(AppointmentMapper.toHistoryEntity(oldHistory));
+      } else {
+        currentDomain = incomingDomain;
+      }
+
+      // Overlap check
+      const others = await manager.find(Appointment, {
+        where: { id: Not(currentDomain.id) },
+      });
+
+      const hasOverlap = others.some((e) => {
+        const otherDomain = AppointmentMapper.fromEntity(e);
+        return currentDomain.hasOverlap(otherDomain);
+      });
+
+      if (hasOverlap) {
+        throw new ConflictException('The requested time range is not available.');
+      }
+
+      const entityToSave = AppointmentMapper.toEntity(currentDomain);
+      return manager.save(entityToSave);
+    });
   }
 
-  /**
-   * Retrieve all latest appointments.
-   *
-   * TDD: Implement after writing controller/service tests.
-   */
-  async findAll(): Promise<any[]> {
-    // TODO: return latest appointment records
-    return [];
+  async findCurrentAppointments(): Promise<Appointment[]> {
+    return this.appointmentRepo.find({ order: { start: 'ASC' } });
   }
 }
