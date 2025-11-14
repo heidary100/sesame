@@ -1,34 +1,105 @@
-## Project setup
+## Project Setup
 
 ```bash
-$ npm install
+npm install
 ```
 
-## Compile and run the project
+---
+
+## 🚀 Run the project with Docker (recommended)
+
+This project includes a full Docker setup with:
+
+* NestJS app container
+* PostgreSQL database container
+* Automatic database readiness check
+* Hot-reload support (watch mode)
+
+### 1. Create a `.env` file (if not existing)
+
+```env
+DB_HOST=postgres
+DB_PORT=5432
+DB_USER=postgres
+DB_PASS=postgres
+DB_NAME=appointments
+
+PORT=3000
+```
+
+### 2. Start all services
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+docker compose up --build
 ```
 
-## Run tests
+### 3. Access the app
+
+| Service                | URL                                                              |
+| ---------------------- | ---------------------------------------------------------------- |
+| API                    | [http://localhost:3000](http://localhost:3000)                   |
+| Swagger Docs           | [http://localhost:3000/api/docs](http://localhost:3000/api/docs) |
+| Postgres (for DBeaver) | Host: `localhost` — Port: `55432`                                |
+
+### 4. Stop all services
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+docker compose down
 ```
+
+If you want a clean rebuild (removes DB volume):
+
+```bash
+docker compose down --volumes --remove-orphans
+```
+
+---
+
+## 🖥️ Run the project locally (without Docker)
+
+Make sure you have PostgreSQL running locally if you run Nest outside Docker.
+
+### Development
+
+```bash
+npm run start
+```
+
+### Watch mode (auto-reload)
+
+```bash
+npm run start:dev
+```
+
+### Production mode
+
+```bash
+npm run start:prod
+```
+
+---
+
+## 🧪 Running Tests
+
+### Unit tests
+
+```bash
+npm run test
+```
+
+### E2E tests
+
+```bash
+npm run test:e2e
+```
+
+### Test coverage
+
+```bash
+npm run test:cov
+```
+
+---
 
 ## Architectural Approaches for Consistency
 
